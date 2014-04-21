@@ -1,0 +1,1101 @@
+<?xml version="1.0"?>
+<root>
+  <website>
+    <id>1</id>
+    <name>youtube</name>
+    <type>ott</type>
+  </website>
+  <search type="ott_list">
+    <search_prepare>
+      <field name="list_type">
+        <comment>the order of items is important: foreign_film, movies, shows</comment>
+        <item parse_method="regex_matched" input="url_pattern_type" value_type="string">
+          <regex>movies_category_foreign_film_.*</regex>
+          <value>movies_foreign_film</value>
+        </item>
+        <item parse_method="regex_matched" input="url_pattern_type" value_type="string">
+          <regex>movies_category_.*</regex>
+          <value>movies</value>
+        </item>
+        <item parse_method="regex_matched" input="url_pattern_type" value_type="string">
+          <regex>shows_category_.*</regex>
+          <value>shows</value>
+        </item>
+      </field>
+      <field name="search_url_index">
+        <item parse_method="text_equal" input="list_type" value_type="string">
+          <text>movies</text>
+          <value>0</value>
+        </item>
+        <item parse_method="text_equal" input="list_type" value_type="string">
+          <text>movies_foreign_film</text>
+          <value>1</value>
+        </item>
+        <item parse_method="text_equal" input="list_type" value_type="string">
+          <text>shows</text>
+          <value>0</value>
+        </item>
+      </field>
+    </search_prepare>
+    <search_urls>
+      <search_url index="0">
+        <comment>search url for movies or shows</comment>
+        <field name="search_url_options">
+          <item parse_method="text_equal" input="list_type" value_type="string">
+            <text>movies</text>
+            <value>flow=grid&amp;view=10</value>
+          </item>
+          <item parse_method="text_equal" input="list_type" value_type="string">
+            <text>shows</text>
+            <value>c_fl=a&amp;fl=a&amp;l=en&amp;pt=g&amp;st=f</value>
+          </item>
+        </field>
+        <field name="list_category_type">
+          <item parse_method="from_regex" input="url_pattern_type" value_type="string">
+            <regex>(?:movies|shows)_category_(.*)$</regex>
+          </item>
+        </field>
+        <field name="page_offset">
+          <item parse_method="from_expression" input="page_num" value_type="string">
+            <expression>${page_num}</expression>
+          </item>
+        </field>
+        <field name="search_url">
+          <item parse_method="from_format" input="list_type, list_category_type, search_url_options, page_offset" value_type="string">
+            <format>http://www.youtube.com/${list_type}/${list_category_type}?${search_url_options}&amp;page=${page_offset}</format>
+          </item>
+        </field>
+        <field name="page_buffer">
+          <item parse_method="curl_download" input="" value_type="string">
+            <url>${search_url}</url>
+            <sleep>3</sleep>
+          </item>
+        </field>
+        <todo>404 and page_end</todo>
+        <field name="search_xpath_index">
+          <item parse_method="text_equal" input="list_type" value_type="string">
+            <text>movies</text>
+            <value>0</value>
+          </item>
+          <item parse_method="text_equal" input="list_type" value_type="string">
+            <text>shows</text>
+            <value>2</value>
+          </item>
+        </field>
+      </search_url>
+      <search_url index="1" search_xpath_index="1">
+        <comment>search url for movies_foreign_film</comment>
+        <field name="page_offset">
+          <item parse_method="from_expression" input="page_num" value_type="string">
+            <expression>${page_num}</expression>
+          </item>
+        </field>
+        <field name="foreign_film_language_abbrev">
+          <item parse_method="from_regex" input="url_pattern_type" value_type="string">
+            <regex>movies_category_foreign_film_([^_]+)_.*</regex>
+          </item>
+        </field>
+        <field name="search_url">
+          <item parse_method="from_format" input="foreign_film_language_abbrev, page_offset" value_type="string">
+            <format>http://www.youtube.com/movies/foreign-film/?fl=a&amp;l=${foreign_film_language_abbrev}&amp;pt=g&amp;st=f&amp;p=${page_offset}</format>
+          </item>
+        </field>
+        <field name="page_buffer">
+          <item parse_method="curl_download" input="" value_type="string">
+            <url>${search_url}</url>
+            <sleep>3</sleep>
+          </item>
+        </field>
+        <todo>404 and page_end</todo>
+      </search_url>
+    </search_urls>
+    <search_xpaths>
+      <search_xpath index="0">
+        <comment>search xpath for movies</comment>
+        <page_video_count></page_video_count>
+        <video_count>
+        </video_count>
+        <video_blocks>
+          <block>
+            <xpath>//li[@class='channels-content-item']</xpath>
+            <field name="clip_title">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//a[@class='content-item-title']</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="raw_clip_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//a[@class='content-item-title']/@href</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="raw_key_id">
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+              </item>
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+              </item>
+            </field>
+            <field name="clip_url">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+                <value>http://www.youtube.com/movie?v=${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+                <value>http://www.youtube.com/movie/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="key_id">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+                <value>movie_${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="md5">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+                <value>movie/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="thumbnail_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//span[@class='yt-thumb-clip-inner']/img/@data-thumb</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="video_type">
+              <item parse_method="from_default" input="" value_type="string">
+                <value>Movie</value>
+              </item>
+            </field>
+          </block>
+        </video_blocks>
+      </search_xpath>
+      <search_xpath index="1">
+        <comment>search xpath for movies foreign film</comment>
+        <page_video_count></page_video_count>
+        <video_count>
+        </video_count>
+        <video_blocks>
+          <block>
+            <xpath>//div[@id='browse-main-column']/ul/li</xpath>
+            <field name="clip_title">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//div[@class='browse-item-content']/h3/a</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="raw_clip_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//div[@class='browse-item-content']/h3/a/@href</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="raw_key_id">
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+              </item>
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+              </item>
+            </field>
+            <field name="clip_url">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+                <value>http://www.youtube.com/movie?v=${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+                <value>http://www.youtube.com/movie/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="key_id">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+                <value>movie_${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="md5">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+                <value>movie/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="thumbnail_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//img[@alt='Thumbnail']/@src</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="video_type">
+              <item parse_method="from_default" input="" value_type="string">
+                <value>Movie</value>
+              </item>
+            </field>
+          </block>
+        </video_blocks>
+      </search_xpath>
+      <search_xpath index="2">
+        <comment>search xpath for shows</comment>
+        <page_video_count></page_video_count>
+        <video_count>
+        </video_count>
+        <video_blocks>
+          <block>
+            <xpath>//div[@id='browse-main-column']/ul[@class='browse-item-list']/li</xpath>
+            <field name="clip_title">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//div[@class='browse-item-content']/h3/a</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="raw_clip_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//div[@class='browse-item-content']/h3/a/@href</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="raw_key_id">
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/channel/([-\w]+)</regex>
+              </item>
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/show/([-\w]+)</regex>
+              </item>
+            </field>
+            <field name="key_id">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/channel/([-\w]+)</regex>
+                <value>channel_${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="md5">
+                <regex>(?:^http://[^/]+|^)/show/([-\w]+)</regex>
+                <value>show/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="clip_url">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/channel/([-\w]+)</regex>
+                <value>http://www.youtube.com/channel/${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/show/([-\w]+)</regex>
+                <value>http://www.youtube.com/show/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="thumbnail_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//img[@alt='Thumbnail']/@src</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="video_type">
+              <item parse_method="from_default" input="" value_type="string">
+                <value>TV Series</value>
+              </item>
+            </field>
+          </block>
+        </video_blocks>
+      </search_xpath>
+    </search_xpaths>
+  </search>
+  <search type="ott_video">
+    <comment>http://www.youtube.com/show/gaiamyoga/videos</comment>
+    <comment>http://www.youtube.com/movie/think-like-a-man?feature=plcp</comment>
+    <search_prepare>
+      <field name="raw_url_data">
+        <item parse_method="from_regex" input="ott_list_url" value_type="string">
+          <regex>/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+        </item>
+        <item parse_method="from_regex" input="ott_list_url" value_type="string">
+          <regex>(^http://[^/]+/(?:show|channel|movie)/[-\w]+)</regex>
+        </item>
+      </field>
+      <field name="formatted_ott_list_url">
+        <item parse_method="regex_matched" input="ott_list_url" value_type="string">
+          <regex>/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+          <value>http://www.youtube.com/movie?v=${raw_url_data}</value>
+        </item>
+        <item parse_method="regex_matched" input="ott_list_url" value_type="string">
+          <regex>(^http://[^/]+/movie/[-\w]+)</regex>
+          <value>${raw_url_data}</value>
+        </item>
+        <item parse_method="regex_matched" input="ott_list_url" value_type="string">
+          <regex>(^http://[^/]+/(?:show|channel)/[-\w]+)</regex>
+          <value>${raw_url_data}/videos</value>
+        </item>
+      </field>
+      <field name="list_url_page_buffer">
+        <item parse_method="curl_download" input="" value_type="string">
+          <url>${formatted_ott_list_url}</url>
+          <sleep>3</sleep>
+        </item>
+      </field>
+      <field name="list_url_last_url">
+        <item parse_method="curl_download_last_url" input="" value_type="string">
+        </item>
+      </field>
+      <field name="video_status" need_stop="1">
+        <item parse_method="text_exist" input="list_url_page_buffer" value_type="removed">
+          <text>404 Not Found</text>
+          <message>page not found</message>
+        </item>
+        <item parse_method="text_exist" input="list_url_page_buffer" value_type="limited">
+          <text>Sign in to view this video</text>
+          <message>need log in</message>
+        </item>
+        <item parse_method="text_exist" input="list_url_page_buffer" value_type="limited">
+          <text>This channel is not available in your country.</text>
+          <message>country block</message>
+        </item>
+        <item parse_method="text_exist" input="list_url_page_buffer" value_type="limited">
+          <text>has blocked it in your country on copyright grounds</text>
+          <message>country block</message>
+        </item>
+        <item parse_method="text_exist" input="list_url_page_buffer" value_type="limited">
+          <text>Sorry for the interruption. We have been receiving a large volume of requests from your network.</text>
+          <message>please enter the verification code</message>
+        </item>
+      </field>
+      <field name="search_url_block_index">
+        <item parse_method="regex_matched" input="list_url_last_url" value_type="string">
+          <regex>^http://[^/]+/(show|channel)</regex>
+          <value>0,1</value>
+        </item>
+        <item parse_method="regex_matched" input="list_url_last_url" value_type="string">
+          <regex>^http://[^/]+/movie</regex>
+          <value>2</value>
+        </item>
+        <item parse_method="regex_matched" input="list_url_last_url" value_type="string">
+          <comment>Sign in needed, do nothing</comment>
+          <regex>^http://[^/]+/verify_age</regex>
+          <value>3</value>
+        </item>
+      </field>
+    </search_prepare>
+    <search_url_blocks>
+      <block index="0">
+        <field name="search_url_index">
+          <item parse_method="from_default" input="" value_type="string">
+            <value>0</value>
+          </item>
+        </field>
+      </block>
+      <block index="1">
+        <field name="search_url_index">
+          <item parse_method="from_default" input="" value_type="string">
+            <value>1</value>
+          </item>
+        </field>
+      </block>
+      <block index="2">
+        <field name="search_url_index">
+          <item parse_method="from_default" input="" value_type="string">
+            <value>2</value>
+          </item>
+        </field>
+      </block>
+      <block index="3">
+        <field name="search_url_index">
+          <item parse_method="from_default" input="" value_type="string">
+            <value>3</value>
+          </item>
+        </field>
+      </block>
+    </search_url_blocks>
+    <search_urls>
+      <search_url index="0" search_xpath_index="0">
+        <field name="search_url">
+          <comment>video search for full_length</comment>
+          <item parse_method="from_format" input="list_url_last_url, page_num" value_type="string">
+            <format>${list_url_last_url}?sort=dd&amp;flow=grid&amp;view=8&amp;page=${page_num}</format>
+          </item>
+        </field>
+        <field name="page_buffer">
+          <item parse_method="curl_download" input="" value_type="string">
+            <url>${search_url}</url>
+            <sleep>3</sleep>
+          </item>
+        </field>
+        <field name="category">
+          <item parse_method="from_default" input="" value_type="string">
+            <value>full_length</value>
+          </item>
+        </field>
+      </search_url>
+      <search_url index="1" search_xpath_index="0">
+        <field name="search_url">
+          <comment>video search for clip</comment>
+          <item parse_method="from_format" input="list_url_last_url, page_num" value_type="string">
+            <format>${list_url_last_url}?sort=dd&amp;flow=grid&amp;view=9&amp;page=${page_num}</format>
+          </item>
+        </field>
+        <field name="page_buffer">
+          <item parse_method="curl_download" input="" value_type="string">
+            <url>${search_url}</url>
+            <sleep>3</sleep>
+          </item>
+        </field>
+        <field name="category">
+          <item parse_method="from_default" input="" value_type="string">
+            <value>clip</value>
+          </item>
+        </field>
+      </search_url>
+      <search_url index="2">
+        <comment>video search for clip</comment>
+        <field name="search_end" need_stop="1">
+          <item parse_method="text_equal" input="page_num" value_type="search_end">
+            <text>2</text>
+          </item>
+        </field>
+        <field name="page_buffer">
+          <item parse_method="from_default" input="" value_type="string">
+            <value>${list_url_page_buffer}</value>
+          </item>
+        </field>
+        <field name="button_content">
+          <item parse_method="from_xpath" input="list_url_page_buffer" value_type="string">
+            <xpath>//div[@id='promo-area']//span[@class='yt-uix-button-content']</xpath>
+            <regex></regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <comment>eg: http://www.youtube.com/movie/cafe-de-los-maestros</comment>
+            <value>no_button_content</value>
+          </item>
+        </field>
+        <field name="search_xpath_index">
+          <comment>eg: http://www.youtube.com/movie?v=3HT4l1hu8mw</comment>
+          <comment>video search for free movie</comment>
+          <item parse_method="text_equal" input="button_content" value_type="string">
+            <text>Watch Now</text>
+            <value>2</value>
+          </item>
+          <comment>eg: http://www.youtube.com/movie/think-like-a-man?feature=plcp</comment>
+          <comment>video search for charged movie</comment>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>1</value>
+          </item>
+        </field>
+      </search_url>
+      <search_url index="3">
+        <comment>Sign in needed</comment>
+        <field name="search_end" need_stop="1">
+          <item parse_method="text_equal" input="page_num" value_type="search_end">
+            <text>1</text>
+          </item>
+        </field>
+      </search_url>
+    </search_urls>
+    <search_xpaths>
+      <search_xpath index="0">
+        <page_video_count></page_video_count>
+        <video_count>
+        </video_count>
+        <video_blocks>
+          <block>
+            <xpath>//div[@class='channel-browse']/ul/li</xpath>
+            <field name="raw_clip_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>./a[@title]/@href</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="clip_url">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>^/</regex>
+                <value>http://www.youtube.com${raw_clip_url}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>^http://</regex>
+                <value>${raw_clip_url}</value>
+              </item>
+            </field>
+            <field name="key_id">
+              <comment>eg: "http://www.youtube.com/watch?v=5danGGBYvgM&amp;feature=plcp"</comment>
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>/watch\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+              </item>
+            </field>
+            <field name="clip_title">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>./a[@title]/@title</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="raw_thumbnail_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//img[@alt='Thumbnail']/@src</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="thumbnail_url">
+              <item parse_method="regex_matched" input="raw_thumbnail_url" value_type="string">
+                <regex>^//</regex>
+                <value>http:${raw_thumbnail_url}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_thumbnail_url" value_type="string">
+                <regex>^http://</regex>
+                <value>${raw_thumbnail_url}</value>
+              </item>
+            </field>
+          </block>
+        </video_blocks>
+      </search_xpath>
+      <search_xpath index="1">
+        <comment>video search for charged movie</comment>
+        <page_video_count></page_video_count>
+        <video_count>
+        </video_count>
+        <video_blocks>
+          <block>
+            <xpath>.</xpath>
+            <field name="raw_clip_url">
+              <item parse_method="from_default" input="list_url_last_url" value_type="string">
+                <value>${list_url_last_url}</value>
+              </item>
+            </field>
+            <field name="raw_key_id">
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+              </item>
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+              </item>
+            </field>
+            <field name="clip_url">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+                <value>http://www.youtube.com/movie?v=${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+                <value>http://www.youtube.com/movie/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="key_id">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+                <value>movie_${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="md5">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+                <value>movie/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="category">
+              <item parse_method="from_default" input="" value_type="string">
+                <value>full_length</value>
+              </item>
+            </field>
+          </block>
+          <block>
+            <comment>eg: http://www.youtube.com/movie/the-pirates-band-of-misfits?feature=plcp</comment>
+            <xpath>//div[@class='entity-video-item yt-uix-overlay player-overlay trailer-thumb']</xpath>
+            <field name="raw_clip_url">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>./a[@title]/@href</xpath>
+                <regex></regex>
+              </item>
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>./a[@class]/@href</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="clip_url">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>^/</regex>
+                <value>http://www.youtube.com${raw_clip_url}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>^http://</regex>
+                <value>${raw_clip_url}</value>
+              </item>
+            </field>
+            <field name="key_id">
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>/watch\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+              </item>
+            </field>
+            <field name="clip_title">
+              <item parse_method="from_xpath" input="" value_type="string">
+                <xpath>.//a[@title]/@title</xpath>
+                <regex></regex>
+              </item>
+            </field>
+            <field name="category">
+              <item parse_method="from_default" input="" value_type="string">
+                <value>Trailer</value>
+              </item>
+            </field>
+          </block>
+        </video_blocks>
+      </search_xpath>
+      <search_xpath index="2">
+        <page_video_count></page_video_count>
+        <video_count>
+        </video_count>
+        <video_blocks>
+          <block>
+            <xpath>.</xpath>
+            <field name="raw_clip_url">
+              <item parse_method="from_default" input="list_url_last_url" value_type="string">
+                <value>${list_url_last_url}</value>
+              </item>
+            </field>
+            <field name="raw_key_id">
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+              </item>
+              <item parse_method="from_regex" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+              </item>
+            </field>
+            <field name="clip_url">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+                <value>http://www.youtube.com/movie?v=${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+                <value>http://www.youtube.com/movie/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="key_id">
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="string">
+                <regex>(?:^http://[^/]+|^)/movie\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+                <value>movie_${raw_key_id}</value>
+              </item>
+              <item parse_method="regex_matched" input="raw_clip_url" value_type="md5">
+                <regex>(?:^http://[^/]+|^)/movie/([-\w]+)</regex>
+                <value>movie/${raw_key_id}</value>
+              </item>
+            </field>
+            <field name="category">
+              <item parse_method="from_default" input="" value_type="string">
+                <value>full_length</value>
+              </item>
+            </field>
+          </block>
+        </video_blocks>
+      </search_xpath>
+    </search_xpaths>
+  </search>
+  <text_identify type="ott_list">
+    <comment>http://www.youtube.com/show/gaiamyoga/videos</comment>
+    <comment>http://www.youtube.com/movie/think-like-a-man?feature=plcp</comment>
+    <text_identify_preprocess>
+      <field name="device_type">
+        <item parse_method="from_default" input="" value_type="string">
+          <value>iPhone,iPad,Android Phone,Android Pad,SmartTV,STB,Other</value>
+        </item>
+      </field>
+      <field name="text_identify_xpath_index">
+        <item parse_method="from_default" input="" value_type="string">
+          <value>0</value>
+        </item>
+      </field>
+      <field name="page_buffer">
+        <item parse_method="curl_download" input="" value_type="string">
+          <url>${clip_url}</url>
+          <sleep>3</sleep>
+        </item>
+      </field>
+      <field name="video_status" need_stop="1">
+        <item parse_method="text_exist" input="page_buffer" value_type="removed">
+          <text>404 Not Found</text>
+          <message>page not found</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>Sign in to view this video</text>
+          <message>need log in</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>This channel is not available in your country.</text>
+          <message>country block</message>
+        </item>
+      </field>
+      <field name="text_identify_xpath_index">
+        <item parse_method="regex_matched" input="clip_url" value_type="string">
+          <regex>^http://www\.youtube\.com/(?:show|channel)/</regex>
+          <value>0</value>
+        </item>
+        <item parse_method="regex_matched" input="clip_url" value_type="string">
+          <regex>^http://www\.youtube\.com/movie</regex>
+          <value>1</value>
+        </item>
+      </field>
+    </text_identify_preprocess>
+    <text_identify_xpaths>
+      <text_identify_xpath index="0">
+        <comment>TV show</comment>
+        <field name="clip_title">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//meta[@name='title']/@content</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="thumbnail_url">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//meta[@property='og:image']/@content</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="raw_release_date">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//div[@class='section first']/div[2]</xpath>
+            <regex>(\d+)\s*–?\s*</regex>
+          </item>
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//div[@class='section first']/div[2]</xpath>
+            <regex>(\d+)\s*</regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>0</value>
+          </item>
+        </field>
+        <field name="release_date">
+          <item parse_method="text_equal" input="raw_release_date" value_type="string">
+            <text>0</text>
+            <value></value>
+          </item>
+          <item parse_method="from_time" input="raw_release_date" value_type="string">
+            <strptime_format>%Y</strptime_format>
+          </item>
+        </field>
+      </text_identify_xpath>
+      <text_identify_xpath index="1">
+        <comment>movie</comment>
+        <field name="clip_title">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//h1[@itemprop='name']</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="thumbnail_url">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//span[@class='yt-thumb-clip-inner']/img/@src</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="raw_release_date">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//dt[@itemprop='datePublished']</xpath>
+            <regex></regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="release_date">
+          <item parse_method="text_equal" input="raw_release_date" value_type="string">
+            <text></text>
+            <value></value>
+          </item>
+          <item parse_method="from_time" input="raw_release_date" value_type="string">
+            <strptime_format>%b %d, %Y</strptime_format>
+          </item>
+          <item parse_method="from_time" input="raw_release_date" value_type="string">
+            <strptime_format>%Y</strptime_format>
+          </item>
+        </field>
+      </text_identify_xpath>
+    </text_identify_xpaths>
+  </text_identify>
+  <text_identify type="ott_video">
+    <text_identify_preprocess>
+      <field name="device_type">
+        <item parse_method="from_default" input="" value_type="string">
+          <value>iPhone,iPad,Android Phone,Android Pad,SmartTV,STB,Other</value>
+        </item>
+      </field>
+      <field name="text_identify_xpath_index">
+        <item parse_method="from_default" input="" value_type="string">
+          <value>0</value>
+        </item>
+      </field>
+      <field name="page_buffer">
+        <item parse_method="curl_download" input="" value_type="string">
+          <url>${clip_url}</url>
+          <sleep>3</sleep>
+        </item>
+      </field>
+      <field name="video_status" need_stop="1">
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>may contain content intended for mature audiences</text>
+          <message>verify_age</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>Sign in to view this video</text>
+          <message>need log in</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>This video is private</text>
+          <message>private video</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>The uploader has not made this video available in your country</text>
+          <message>not available in your country</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>has blocked it in your country on copyright grounds</text>
+          <message>country block</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>This rental is currently unavailable</text>
+          <message>This rental is currently unavailable</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="limited">
+          <text>Sorry for the interruption. We have been receiving a large volume of requests from your network.</text>
+          <message>please enter the verification code</message>
+        </item>
+        <item parse_method="text_exist" input="page_buffer" value_type="removed">
+          <text>404 Not Found</text>
+          <message>page not found</message>
+        </item>
+      </field>
+      <field name="text_identify_xpath_index">
+        <item parse_method="regex_matched" input="clip_url" value_type="string">
+          <regex>/watch\?(?:[^?&amp;#]+&amp;)*v=[^?&amp;#]+</regex>
+          <value>0</value>
+        </item>
+        <comment>eg: http://www.youtube.com/movie/the-hunger-games?feature=plcp</comment>
+        <comment>eg: http://www.youtube.com/movie?v=3HT4l1hu8mw</comment>
+        <item parse_method="from_default" input="" value_type="string">
+          <value>1</value>
+        </item>
+      </field>
+    </text_identify_preprocess>
+    <text_identify_xpaths>
+      <text_identify_xpath index="0">
+        <field name="clip_title">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//meta[@name='title']/@content</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="raw_post_date">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//*[@id='eow-date']</xpath>
+            <regex>((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s*\d+\s*,\s*\d+)</regex>
+          </item>
+        </field>
+        <field name="post_date">
+          <item parse_method="from_time" input="raw_post_date" value_type="string">
+            <strptime_format>%b %d, %Y</strptime_format>
+          </item>
+        </field>
+        <field name="poster">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//*[@id='watch-uploader-info']//a[@rel='author']</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="thumbnail_url">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//meta[@property='og:image']/@content</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="raw_view_count">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//span[@class='watch-view-count']</xpath>
+            <regex>([,\d]+)\s*(?:view|$)</regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>0</value>
+          </item>
+        </field>
+        <field name="count_type">
+          <item parse_method="regex_matched" input="raw_view_count" value_type="string">
+            <regex>[,]+</regex>
+            <value>has_comma</value>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>no_comma</value>
+          </item>
+        </field>
+        <field name="view_count">
+          <item parse_method="text_equal" input="count_type" value_type="string">
+            <text>no_comma</text>
+            <value>${raw_view_count}</value>
+          </item>
+          <item parse_method="regex_substitution" input="raw_view_count" value_type="string">
+            <old_pattern>(,)</old_pattern>
+            <new_pattern></new_pattern>
+          </item>
+        </field>
+        <field name="raw_season_episode_num">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//ul[@id='watch-description-extra-info']/li[@class][1]/span</xpath>
+            <regex></regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>0</value>
+          </item>
+        </field>
+        <field name="season_num">
+          <item parse_method="from_regex" input="raw_season_episode_num" value_type="string">
+            <regex>Season\s*(\d+)</regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>0</value>
+          </item>
+        </field>
+        <field name="episode_num">
+          <item parse_method="from_regex" input="raw_season_episode_num" value_type="string">
+            <regex>Ep\.\s*(\d+)</regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>0</value>
+          </item>
+        </field>
+        <field name="price">
+          <item parse_method="from_regex" input="page_buffer" value_type="string">
+            <regex>\"ypc_price_string\"\s*:\s*.*?\$([.\d]+)\"</regex>
+          </item>
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//span[@class='button-label hid']</xpath>
+            <regex>From\s*\$([.\d]+)</regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="price_unit">
+          <item parse_method="regex_matched" input="price" value_type="string">
+            <regex>(.+)</regex>
+            <value>dollar</value>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="price_type">
+          <item parse_method="text_equal" input="price" value_type="string">
+            <text></text>
+            <value>free_trial</value>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>pay_per_request</value>
+          </item>
+        </field>
+        <field name="raw_key_id">
+          <item parse_method="from_regex" input="clip_url" value_type="string">
+            <regex>/watch\?(?:[^?&amp;#]+&amp;)*v=([^?&amp;#]+)</regex>
+          </item>
+        </field>
+        <field name="api_url">
+          <item parse_method="from_format" input="raw_key_id" value_type="string">
+            <format>http://gdata.youtube.com/feeds/videos/${raw_key_id}</format>
+          </item>
+        </field>
+        <field name="api_buffer">
+          <item parse_method="curl_download" input="" value_type="string">
+            <url>${api_url}</url>
+            <sleep>3</sleep>
+          </item>
+        </field>
+        <field name="clip_duration">
+          <item parse_method="from_regex" input="api_buffer" value_type="string">
+            <regex>yt:duration seconds='(\d+)'</regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+      </text_identify_xpath>
+      <text_identify_xpath index="1">
+        <field name="clip_title">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//h1[@itemprop='name']</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="thumbnail_url">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//span[@class='yt-thumb-clip-inner']/img/@src</xpath>
+            <regex></regex>
+          </item>
+        </field>
+        <field name="raw_release_date">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//dt[@itemprop='datePublished']</xpath>
+            <regex></regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="release_date">
+          <item parse_method="from_time" input="raw_release_date" value_type="string">
+            <strptime_format>%Y</strptime_format>
+          </item>
+          <item parse_method="from_time" input="raw_release_date" value_type="string">
+            <strptime_format>%b %d, %Y</strptime_format>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="raw_clip_duration">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//dt[@itemprop='duration']</xpath>
+            <regex>([:\d]+)</regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="clip_duration">
+          <item parse_method="time_length_to_second" input="raw_clip_duration" value_type="string">
+            <strptime_format>%H:%M:%S</strptime_format>
+            <regex></regex>
+            <keywords></keywords>
+          </item>
+          <item parse_method="time_length_to_second" input="raw_clip_duration" value_type="string">
+            <strptime_format>%M:%S</strptime_format>
+            <regex></regex>
+            <keywords></keywords>
+          </item>
+          <item parse_method="time_length_to_second" input="raw_clip_duration" value_type="string">
+            <strptime_format>%S</strptime_format>
+            <regex></regex>
+            <keywords></keywords>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="price">
+          <item parse_method="from_xpath" input="page_buffer" value_type="string">
+            <xpath>//div[@id='browse-entity-main-column']//span[@class='yt-uix-button-content']</xpath>
+            <regex>\$([.\d]+)</regex>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="price_unit">
+          <item parse_method="regex_matched" input="price" value_type="string">
+            <regex>(.+)</regex>
+            <value>dollar</value>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value></value>
+          </item>
+        </field>
+        <field name="price_type">
+          <item parse_method="text_equal" input="price" value_type="string">
+            <text></text>
+            <value>free_trial</value>
+          </item>
+          <item parse_method="from_default" input="" value_type="string">
+            <value>pay_per_request</value>
+          </item>
+        </field>
+      </text_identify_xpath>
+    </text_identify_xpaths>
+  </text_identify>
+</root>
+<!-- end -->
+
